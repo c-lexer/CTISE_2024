@@ -1,11 +1,12 @@
 import torch
 from transformers import RobertaModel
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import classification_report, accuracy_score, roc_curve, auc
 import numpy as np
 from data_helpers import Datascraper
 from plot_helpers import plot
+from scipy.stats import randint
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = RobertaModel.from_pretrained("microsoft/codebert-base")
@@ -40,11 +41,17 @@ X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=
 
 
 # Initialize the Random Forest classifier & train it
-rf_classifier = RandomForestClassifier(n_estimators=100)
-rf_classifier.fit(X_train, y_train)
+param_dist = {"n_estimators": randint(50, 500), "max_depth": randint(1, 20)}
+
+# Create a random forest classifier
+rf = RandomForestClassifier()
+
+# Use random search to find the best hyperparameters
+rand_search = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=5, cv=5)
+rand_search.fit(X_train, y_train)
 
 # Make predictions on the test set
-predictions = rf_classifier.predict(X_test)
+predictions = rand_search.predict(X_test)
 
 # Evaluate the model
 accuracy = accuracy_score(y_test, predictions)
@@ -63,7 +70,7 @@ print(classification_report(y_test, predictions))
 
 
 # Get the predicted probabilities for the positive class
-y_scores = rf_classifier.predict_proba(X_test)[:, 1]
+y_scores = rand_search.predict_proba(X_test)[:, 1]
 
 # Calculate the ROC curve
 fpr, tpr, thresholds = roc_curve(y_test, y_scores)
@@ -73,3 +80,9 @@ roc_auc = auc(fpr, tpr)
 
 # Plot the ROC curve
 plot(fpr, tpr, roc_auc)
+
+# Create a variable for the best model
+best_rf = rand_search.best_estimator_
+
+# Print the best hyperparameters
+print("Best hyperparameters:", rand_search.best_params_)
