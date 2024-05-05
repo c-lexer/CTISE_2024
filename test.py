@@ -6,6 +6,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
@@ -138,3 +140,25 @@ print(classification_report(y_test, predictions))
 #     accuracy                           0.96       280
 #    macro avg       0.48      0.50      0.49       280
 # weighted avg       0.92      0.96      0.94       280
+
+
+# Get the predicted probabilities for the positive class
+y_scores = rf_classifier.predict_proba(X_test)[:, 1]
+
+# Calculate the ROC curve
+fpr, tpr, thresholds = roc_curve(y_test, y_scores)
+
+# Calculate the AUC
+roc_auc = auc(fpr, tpr)
+
+# Plot the ROC curve
+plt.figure()
+plt.plot(fpr, tpr, color='darkorange', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC)')
+plt.legend(loc="lower right")
+plt.show()
