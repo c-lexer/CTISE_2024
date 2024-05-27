@@ -34,9 +34,11 @@ for statement in datascraper.dataset:
 # Convert lists to numpy arrays
 features = np.array(features)
 labels = np.array(labels)
-
+print (features[:3])
+print(labels[:3])
 # Split the data into training and testing sets
 # a split of 80/20 is recommended
+
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2)
 
 
