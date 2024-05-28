@@ -14,6 +14,8 @@ model.to(device)
 
 datascraper = Datascraper()
 datascraper.scrape_files(token_cutoff=4)
+#for data in datascraper.dataset:
+#    data.pretty_print()
 datascraper.pad_tokens(max_length=50)
 
 features = []
@@ -34,9 +36,11 @@ for statement in datascraper.dataset:
 # Convert lists to numpy arrays
 features = np.array(features)
 labels = np.array(labels)
-
+print (features[:3])
+print(labels[:3])
 # Split the data into training and testing sets
 # a split of 80/20 is recommended
+
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2)
 
 
@@ -46,6 +50,7 @@ param_dist = {"n_estimators": randint(50, 500), "max_depth": randint(1, 20)}
 # Create a random forest classifier
 rf = RandomForestClassifier()
 
+#next time only use this on small subset to save time! 10-20% of data
 # Use random search to find the best hyperparameters
 rand_search = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=5, cv=5)
 rand_search.fit(X_train, y_train)
