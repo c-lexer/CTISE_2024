@@ -19,45 +19,47 @@ class Statement:
 
 
 class Datascraper:
-    def __init__(self) -> None:
+    def __init__(self, device) -> None:
         self.dataset = []
         self.root_dir = "."
         self.max_length = 0
         self.tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
+        self.device = device
         pass
 
-    def scrape_files(self, token_cutoff=0) -> None:
+    def scrape_files(self, token_cutoff=0, nth_item=1) -> None:
         with open("data.json", "r") as f:
             data = json.load(f)
-            for entry in data:
-                if entry["vul"] == 1:
-                    buggy_lines_range = entry["flaw_line_no"]
-                else:
-                    buggy_lines_range = []
-                line_count = 0
-                split_lines = (entry["code"].split("\n"))
-                for line in split_lines:
-                    line_count += 1
-                    tokens = self.tokenizer.encode(
-                        line.strip(), return_tensors="pt"
-                    )
-                    if (
-                        len(tokens[0]) > token_cutoff
-                    ):  # ignore lines with less than 4 tokens
-                        self.dataset.append(
-                            Statement(
-                                f.name,
-                                line_count,
-                                line.strip(),
-                                line_count in buggy_lines_range,
-                                self.tokenizer.encode(
-                                    line.strip(), return_tensors="pt"
-                                ),
+            for index, entry in enumerate(data):
+                if index % nth_item == 0:
+                    if entry["vul"] == 1:
+                        buggy_lines_range = entry["flaw_line_no"]
+                    else:
+                        buggy_lines_range = []
+                    line_count = 0
+                    split_lines = entry["code"].split("\n")
+                    for line in split_lines:
+                        line_count += 1
+                        tokens = self.tokenizer.encode(
+                            line.strip(), return_tensors="pt"
+                        ).to(self.device)
+                        if (
+                            len(tokens[0]) > token_cutoff
+                        ):  # ignore lines with less than 4 tokens
+                            self.dataset.append(
+                                Statement(
+                                    f.name,
+                                    line_count,
+                                    line.strip(),
+                                    line_count in buggy_lines_range,
+                                    self.tokenizer.encode(
+                                        line.strip(), return_tensors="pt"
+                                    ).to(self.device),
+                                )
                             )
-                        )
-                        self.max_length = max(
-                            self.max_length, len(self.dataset[-1].tokens[0])
-                        )
+                            self.max_length = max(
+                                self.max_length, len(self.dataset[-1].tokens[0])
+                            )
 
     def pad_tokens(self, max_length=None):
         max_length = max_length if max_length is not None else self.max_length

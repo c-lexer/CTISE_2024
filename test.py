@@ -11,16 +11,16 @@ from scipy.stats import randint
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = RobertaModel.from_pretrained("microsoft/codebert-base")
 model.to(device)
-
-datascraper = Datascraper()
-datascraper.scrape_files(token_cutoff=4)
-#for data in datascraper.dataset:
+datascraper = Datascraper(device)
+datascraper.scrape_files(token_cutoff=4, nth_item=100)
+# for data in datascraper.dataset:
 #    data.pretty_print()
 datascraper.pad_tokens(max_length=50)
 
 features = []
 labels = []
 
+print("Finishing data preparation.")
 for statement in datascraper.dataset:
     # Extract contextual embeddings
     contextual_embeddings = model(statement.tokens)[0]
@@ -32,12 +32,11 @@ for statement in datascraper.dataset:
     features.append(pooled_features)
     labels.append(statement.vulnerable)
 
+print("Finishing embedding of tokens.")
 
 # Convert lists to numpy arrays
 features = np.array(features)
 labels = np.array(labels)
-print (features[:3])
-print(labels[:3])
 # Split the data into training and testing sets
 # a split of 80/20 is recommended
 
@@ -50,12 +49,13 @@ param_dist = {"n_estimators": randint(50, 500), "max_depth": randint(1, 20)}
 # Create a random forest classifier
 rf = RandomForestClassifier()
 
-#next time only use this on small subset to save time! 10-20% of data
-# Use random search to find the best hyperparameters
+# next time only use this on small subset to save time! 10-20% of data
+print("Using random search to find the best hyperparameters.")
 rand_search = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=5, cv=5)
 rand_search.fit(X_train, y_train)
 
-# Make predictions on the test set
+
+print("Making predictions on the test set.")
 predictions = rand_search.predict(X_test)
 
 # Evaluate the model
