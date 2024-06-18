@@ -25,14 +25,27 @@ features = []
 labels = []
 
 print(f"{time.perf_counter() - timer_start:0.4f} : Finished data preparation.")
+
 for statement in datascraper.dataset:
-    # Extract contextual embeddings
-    contextual_embeddings = model(statement.tokens)[0]
-    # Mean pooling over the contextual embeddings and flatten
-    # ChatGPT helped me with this, apparently I need a 2 dimensional vector for a random forest classifier
-    pooled_features = (
-        torch.mean(contextual_embeddings, dim=2).detach().cpu().numpy().flatten()
-    )
+    input_ids = statement.tokens.to(device)
+    attention_mask = (input_ids != datascraper.tokenizer.pad_token_id).long().to(device)
+    with torch.no_grad():
+        contextual_embeddings = model(input_ids, attention_mask=attention_mask)[0]
+        min_pooled_features = (
+            torch.min(contextual_embeddings, dim=1)
+            .values.detach()
+            .cpu()
+            .numpy()
+            .flatten()
+        )
+        max_pooled_features = (
+            torch.max(contextual_embeddings, dim=1)
+            .values.detach()
+            .cpu()
+            .numpy()
+            .flatten()
+        )
+        pooled_features = np.concatenate((min_pooled_features, max_pooled_features))
     features.append(pooled_features)
     labels.append(statement.vulnerable)
 
@@ -53,7 +66,6 @@ param_dist = {"n_estimators": randint(50, 500), "max_depth": randint(1, 20)}
 # Create a random forest classifier
 rf = RandomForestClassifier()
 
-# next time only use this on small subset to save time! 10-20% of data
 print(
     f"{time.perf_counter() - timer_start:0.4f} : Using random search to find the best hyperparameters."
 )
