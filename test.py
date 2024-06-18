@@ -8,11 +8,15 @@ from data_helpers import Datascraper
 from plot_helpers import plot
 from scipy.stats import randint
 
+import time
+
+timer_start = time.perf_counter()
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = RobertaModel.from_pretrained("microsoft/codebert-base")
 model.to(device)
 datascraper = Datascraper(device)
-datascraper.scrape_files(token_cutoff=4, nth_item=100)
+datascraper.scrape_files(token_cutoff=4, nth_item=5)
 # for data in datascraper.dataset:
 #    data.pretty_print()
 datascraper.pad_tokens(max_length=50)
@@ -20,7 +24,7 @@ datascraper.pad_tokens(max_length=50)
 features = []
 labels = []
 
-print("Finishing data preparation.")
+print(f"{time.perf_counter() - timer_start:0.4f} : Finished data preparation.")
 for statement in datascraper.dataset:
     # Extract contextual embeddings
     contextual_embeddings = model(statement.tokens)[0]
@@ -32,7 +36,7 @@ for statement in datascraper.dataset:
     features.append(pooled_features)
     labels.append(statement.vulnerable)
 
-print("Finishing embedding of tokens.")
+print(f"{time.perf_counter() - timer_start:0.4f} : Finished embedding of tokens.")
 
 # Convert lists to numpy arrays
 features = np.array(features)
@@ -50,12 +54,14 @@ param_dist = {"n_estimators": randint(50, 500), "max_depth": randint(1, 20)}
 rf = RandomForestClassifier()
 
 # next time only use this on small subset to save time! 10-20% of data
-print("Using random search to find the best hyperparameters.")
+print(
+    f"{time.perf_counter() - timer_start:0.4f} : Using random search to find the best hyperparameters."
+)
 rand_search = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=5, cv=5)
 rand_search.fit(X_train, y_train)
 
 
-print("Making predictions on the test set.")
+print(f"{time.perf_counter() - timer_start:0.4f} : Making predictions on the test set.")
 predictions = rand_search.predict(X_test)
 
 # Evaluate the model
