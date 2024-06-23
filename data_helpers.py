@@ -28,11 +28,15 @@ class Datascraper:
         pass
 
     def scrape_files(self, token_cutoff=0, nth_item=1) -> None:
+        faulty = 0
+        overall = 0
         with open("data.json", "r") as f:
             data = json.load(f)
             for index, entry in enumerate(data):
+                overall = overall + 1
                 if index % nth_item == 0:
                     if entry["vul"] == 1:
+                        faulty = faulty + 1
                         buggy_lines_range = entry["flaw_line_no"]
                     else:
                         buggy_lines_range = []
