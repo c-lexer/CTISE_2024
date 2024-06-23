@@ -13,8 +13,6 @@ model = RobertaModel.from_pretrained("microsoft/codebert-base")
 model.to(device)
 datascraper = Datascraper(device)
 datascraper.scrape_files(token_cutoff=4, nth_item=100)
-# for data in datascraper.dataset:
-#    data.pretty_print()
 datascraper.pad_tokens(max_length=50)
 
 features = []
@@ -53,8 +51,6 @@ rf = RandomForestClassifier()
 print("Using random search to find the best hyperparameters.")
 rand_search = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=5, cv=5)
 rand_search.fit(X_train, y_train)
-
-
 print("Making predictions on the test set.")
 predictions = rand_search.predict(X_test)
 

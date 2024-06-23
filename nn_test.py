@@ -19,7 +19,7 @@ model = RobertaModel.from_pretrained("microsoft/codebert-base")
 tokenizer = RobertaTokenizer.from_pretrained("microsoft/codebert-base")
 model.to(device)
 datascraper = Datascraper(device)
-datascraper.scrape_files(token_cutoff=4, nth_item=100)
+datascraper.scrape_files(token_cutoff=4, nth_item=150)
 # for data in datascraper.dataset:
 #    data.pretty_print()
 datascraper.pad_tokens(max_length=50)
@@ -48,10 +48,10 @@ features = np.array(features)
 labels = np.array(labels)
 # Split the data into training and testing sets
 # a split of 80/20 is recommended
+
 features = features.reshape(features.shape[0], features.shape[1], -1)
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, stratify=labels)
 X_train_reshaped = X_train.reshape(X_train.shape[0], -1)
-# Resample the training set
 smote = SMOTE(random_state=42)
 X_train_resampled, y_train_resampled = smote.fit_resample(X_train_reshaped, y_train)
 X_train_resampled = X_train_resampled.reshape(-1, X_train.shape[1], X_train.shape[2])
@@ -102,16 +102,16 @@ class LSTMModel(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-# Define model, criterion, and optimizer
 
 hidden_size = 128
 num_layers = 2
 output_size = 1
 input_size = X_train_tensor.shape[2]
 model_lstm = LSTMModel(input_size, hidden_size, num_layers, output_size).to(device)
-#model_nn = SimpleNN(input_size).to(device)
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 optimizer = optim.Adam(model_lstm.parameters(), lr=0.001)
+
+
 # Training the neural network
 num_epochs = 20
 for epoch in range(num_epochs):
